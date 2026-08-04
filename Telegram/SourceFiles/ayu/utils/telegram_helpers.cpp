@@ -718,11 +718,17 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 		return false;
 	}
 
-	if (const auto possiblyBot = item->history()->peer->asUser()) {
-		return !possiblyBot->isBot() || (settings.saveForBots() && possiblyBot->isBot());
+	const auto peer = item->history()->peer;
+	if (const auto possiblyBot = peer->asUser()) {
+		return settings.saveDeletedPrivate()
+			&& (!possiblyBot->isBot() || settings.saveForBots());
+	}
+	if (peer->isChat() || peer->isMegagroup()) {
+		return settings.saveDeletedGroups();
 	}
 	return true;
 }
+
 
 void processMessageDelete(not_null<HistoryItem*> item) {
 	if (!isMessageSavable(item)) {
