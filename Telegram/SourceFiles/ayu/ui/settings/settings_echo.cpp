@@ -25,6 +25,12 @@ struct SaveToggle {
 	BoolSetter setter;
 };
 
+void AddSeparator(SectionBuilder &builder) {
+	builder.addSkip();
+	builder.addDivider();
+	builder.addSkip();
+}
+
 void BuildSaveSection(
 		SectionBuilder &builder,
 		AyuSectionBuilder &ayu,
@@ -74,6 +80,22 @@ const auto kMeta = BuildHelper({
 			u"echo/saveDeletedGroups"_q,
 			&AyuSettings::saveDeletedGroups,
 			&AyuSettings::setSaveDeletedGroups,
+		});
+	AddSeparator(builder);
+	BuildSaveSection(
+		builder,
+		ayu,
+		u"save edit history"_q,
+		settings->saveMessagesHistoryValue(),
+		{
+			u"echo/saveEditedPrivate"_q,
+			&AyuSettings::saveEditedPrivate,
+			&AyuSettings::setSaveEditedPrivate,
+		},
+		{
+			u"echo/saveEditedGroups"_q,
+			&AyuSettings::saveEditedGroups,
+			&AyuSettings::setSaveEditedGroups,
 		});
 	builder.addSkip();
 });

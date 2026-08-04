@@ -729,6 +729,22 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 	return true;
 }
 
+bool isEditSavable(const not_null<HistoryItem*> item) {
+	const auto &settings = AyuSettings::getInstance();
+
+	if (!settings.saveMessagesHistory()) {
+		return false;
+	}
+
+	const auto peer = item->history()->peer;
+	if (peer->isUser()) {
+		return settings.saveEditedPrivate();
+	}
+	if (peer->isChat() || peer->isMegagroup()) {
+		return settings.saveEditedGroups();
+	}
+	return true;
+}
 
 void processMessageDelete(not_null<HistoryItem*> item) {
 	if (!isMessageSavable(item)) {

@@ -272,6 +272,8 @@ public:
 	[[nodiscard]] bool saveForBots() const { return _saveForBots.current(); }
 	[[nodiscard]] bool saveDeletedPrivate() const { return _saveDeletedPrivate.current(); }
 	[[nodiscard]] bool saveDeletedGroups() const { return _saveDeletedGroups.current(); }
+	[[nodiscard]] bool saveEditedPrivate() const { return _saveEditedPrivate.current(); }
+	[[nodiscard]] bool saveEditedGroups() const { return _saveEditedGroups.current(); }
 	[[nodiscard]] bool filtersEnabled() const { return _filtersEnabled.current(); }
 	[[nodiscard]] bool filtersEnabledInChats() const { return _filtersEnabledInChats.current(); }
 	[[nodiscard]] bool hideFromBlocked() const { return _hideFromBlocked.current(); }
@@ -361,6 +363,8 @@ public:
 	void setSaveForBots(bool val);
 	void setSaveDeletedPrivate(bool val);
 	void setSaveDeletedGroups(bool val);
+	void setSaveEditedPrivate(bool val);
+	void setSaveEditedGroups(bool val);
 	void setFiltersEnabled(bool val);
 	void setFiltersEnabledInChats(bool val);
 	void setHideFromBlocked(bool val);
@@ -633,6 +637,8 @@ private:
 	rpl::variable<bool> _saveForBots = false;
 	rpl::variable<bool> _saveDeletedPrivate = true;
 	rpl::variable<bool> _saveDeletedGroups = true;
+	rpl::variable<bool> _saveEditedPrivate = true;
+	rpl::variable<bool> _saveEditedGroups = true;
 	std::unordered_set<int64> _shadowBanIds;
 	rpl::variable<bool> _filtersEnabled = false;
 	rpl::variable<bool> _filtersEnabledInChats = false;
