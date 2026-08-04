@@ -3685,6 +3685,9 @@ int Session::unreadBadge() const {
 
 int Session::unreadWithMentionsBadge() const {
 	auto state = _chatsList.unreadState();
+	if (AyuSettings::getInstance().excludeMentionsFromUnreadCount()) {
+		return computeUnreadBadge(state);
+	}
 	if (state.mentions) {
 		state.messages -= state.mentions;
 	}
@@ -3697,6 +3700,9 @@ bool Session::unreadBadgeMuted() const {
 
 bool Session::unreadWithMentionsBadgeMuted() const {
 	const auto state = _chatsList.unreadState();
+	if (AyuSettings::getInstance().excludeMentionsFromUnreadCount()) {
+		return computeUnreadBadgeMuted(state);
+	}
 	return !state.mentions && computeUnreadBadgeMuted(state);
 }
 

@@ -969,6 +969,15 @@ void AyuSettings::setHideNotificationBadge(bool val) {
 	save();
 }
 
+void AyuSettings::setExcludeMentionsFromUnreadCount(bool val) {
+	if (_excludeMentionsFromUnreadCount.current() == val) return;
+	_excludeMentionsFromUnreadCount = val;
+	Core::App().refreshApplicationIcon();
+	Core::App().tray().updateIconCounters();
+	Core::App().domain().notifyUnreadBadgeChanged();
+	save();
+}
+
 void AyuSettings::setHideAllChatsFolder(bool val) {
 	if (_hideAllChatsFolder.current() == val) return;
 	_hideAllChatsFolder = val;
@@ -1174,6 +1183,7 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"monoFont", s._monoFont.current()},
 		{"hideNotificationCounters", s._hideNotificationCounters.current()},
 		{"hideNotificationBadge", s._hideNotificationBadge.current()},
+		{"excludeMentionsFromUnreadCount", s._excludeMentionsFromUnreadCount.current()},
 		{"hideAllChatsFolder", s._hideAllChatsFolder.current()},
 		{"channelBottomButton", s._channelBottomButton.current()},
 		{"quickAdminShortcuts", s._quickAdminShortcuts.current()},
@@ -1282,6 +1292,7 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._monoFont = j.value("monoFont", defaults._monoFont.current());
 	s._hideNotificationCounters = j.value("hideNotificationCounters", defaults._hideNotificationCounters.current());
 	s._hideNotificationBadge = j.value("hideNotificationBadge", defaults._hideNotificationBadge.current());
+	s._excludeMentionsFromUnreadCount = j.value("excludeMentionsFromUnreadCount", defaults._excludeMentionsFromUnreadCount.current());
 	s._hideAllChatsFolder = j.value("hideAllChatsFolder", defaults._hideAllChatsFolder.current());
 	s._channelBottomButton = j.value("channelBottomButton", defaults._channelBottomButton.current());
 	s._quickAdminShortcuts = j.value("quickAdminShortcuts", defaults._quickAdminShortcuts.current());
