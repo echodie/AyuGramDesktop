@@ -31,6 +31,17 @@ void AddSeparator(SectionBuilder &builder) {
 	builder.addSkip();
 }
 
+void BuildUnreadCounter(SectionBuilder &builder, AyuSectionBuilder &ayu) {
+	builder.addSubsectionTitle(rpl::single(u"unread counter"_q));
+
+	ayu.addSettingToggle({
+		.id = u"echo/excludeMentionsFromUnreadCount"_q,
+		.title = rpl::single(u"exclude mentions from badge"_q),
+		.getter = &AyuSettings::excludeMentionsFromUnreadCount,
+		.setter = &AyuSettings::setExcludeMentionsFromUnreadCount,
+	});
+}
+
 void BuildSaveSection(
 		SectionBuilder &builder,
 		AyuSectionBuilder &ayu,
@@ -66,6 +77,8 @@ const auto kMeta = BuildHelper({
 	auto *settings = &AyuSettings::getInstance();
 
 	builder.addSkip();
+	BuildUnreadCounter(builder, ayu);
+	AddSeparator(builder);
 	BuildSaveSection(
 		builder,
 		ayu,

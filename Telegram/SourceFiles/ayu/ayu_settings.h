@@ -338,6 +338,7 @@ public:
 	[[nodiscard]] const QString &monoFont() const { return _monoFont.current(); }
 	[[nodiscard]] bool hideNotificationCounters() const { return _hideNotificationCounters.current(); }
 	[[nodiscard]] bool hideNotificationBadge() const { return _hideNotificationBadge.current(); }
+	[[nodiscard]] bool excludeMentionsFromUnreadCount() const { return _excludeMentionsFromUnreadCount.current(); }
 	[[nodiscard]] bool hideAllChatsFolder() const { return _hideAllChatsFolder.current(); }
 	[[nodiscard]] ChannelBottomButton channelBottomButton() const { return _channelBottomButton.current(); }
 	[[nodiscard]] bool quickAdminShortcuts() const { return _quickAdminShortcuts.current(); }
@@ -429,6 +430,7 @@ public:
 	void setMonoFont(const QString &val);
 	void setHideNotificationCounters(bool val);
 	void setHideNotificationBadge(bool val);
+	void setExcludeMentionsFromUnreadCount(bool val);
 	void setHideAllChatsFolder(bool val);
 	void setChannelBottomButton(ChannelBottomButton val);
 	void setQuickAdminShortcuts(bool val);
@@ -704,6 +706,7 @@ private:
 	rpl::variable<QString> _monoFont;
 	rpl::variable<bool> _hideNotificationCounters = false;
 	rpl::variable<bool> _hideNotificationBadge = false;
+	rpl::variable<bool> _excludeMentionsFromUnreadCount = false;
 	rpl::variable<bool> _hideAllChatsFolder = false;
 	rpl::variable<ChannelBottomButton> _channelBottomButton = ChannelBottomButton::DiscussWithFallback;
 	rpl::variable<bool> _quickAdminShortcuts = true;
