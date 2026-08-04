@@ -147,6 +147,8 @@ set(ayugram_files
         ayu/ui/settings/settings_ayu_utils.h
         ayu/ui/settings/settings_chats.cpp
         ayu/ui/settings/settings_chats.h
+        ayu/ui/settings/settings_echo.cpp
+        ayu/ui/settings/settings_echo.h
         ayu/ui/settings/settings_general.cpp
         ayu/ui/settings/settings_general.h
         ayu/ui/settings/settings_ayu.cpp

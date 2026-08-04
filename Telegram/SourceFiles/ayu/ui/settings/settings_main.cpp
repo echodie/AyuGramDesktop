@@ -13,6 +13,7 @@
 #include "ayu/ui/settings/settings_appearance.h"
 #include "ayu/ui/settings/settings_ayu.h"
 #include "ayu/ui/settings/settings_chats.h"
+#include "ayu/ui/settings/settings_echo.h"
 #include "ayu/ui/settings/settings_filters.h"
 #include "ayu/ui/settings/settings_general.h"
 #include "ayu/ui/settings/settings_other.h"
@@ -129,6 +130,11 @@ void BuildCategories(SectionBuilder &builder) {
 		.title = tr::ayu_CategoryOther(),
 		.targetSection = AyuOther::Id(),
 		.icon = { &st::menuIconFave },
+	});
+	builder.addSectionButton({
+		.title = rpl::single(u"echo"_q),
+		.targetSection = Echo::Id(),
+		.icon = { &st::menuIconCustomize },
 	});
 }
 
