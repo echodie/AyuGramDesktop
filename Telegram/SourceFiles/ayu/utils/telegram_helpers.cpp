@@ -720,8 +720,30 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 		return false;
 	}
 
-	if (const auto possiblyBot = item->history()->peer->asUser()) {
-		return !possiblyBot->isBot() || (settings.saveForBots() && possiblyBot->isBot());
+	const auto peer = item->history()->peer;
+	if (const auto possiblyBot = peer->asUser()) {
+		return settings.saveDeletedPrivate()
+			&& (!possiblyBot->isBot() || settings.saveForBots());
+	}
+	if (peer->isChat() || peer->isMegagroup()) {
+		return settings.saveDeletedGroups();
+	}
+	return true;
+}
+
+bool isEditSavable(const not_null<HistoryItem*> item) {
+	const auto &settings = AyuSettings::getInstance();
+
+	if (!settings.saveMessagesHistory()) {
+		return false;
+	}
+
+	const auto peer = item->history()->peer;
+	if (peer->isUser()) {
+		return settings.saveEditedPrivate();
+	}
+	if (peer->isChat() || peer->isMegagroup()) {
+		return settings.saveEditedGroups();
 	}
 	return true;
 }
