@@ -195,6 +195,17 @@ void Account::createSession(
 	if (!serialized.isEmpty()) {
 		local().readSelf(_session.get(), serialized, streamVersion);
 	}
+	for (const auto &[index, account] : domain().accounts()) {
+		const auto other = (account.get() == this)
+			? nullptr
+			: account->maybeSession();
+		if (other) {
+			_session->settings().autoDownload().setFromSerialized(
+				other->settings().autoDownload().serialize());
+			_session->saveSettingsDelayed();
+			break;
+		}
+	}
 	_sessionValue = _session.get();
 
 	Ensures(_session != nullptr);

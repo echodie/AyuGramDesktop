@@ -1,17 +1,27 @@
 #include "ayu/ui/settings/settings_echo.h"
 
+#include "lang_auto.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/boxes/mention_filter_box.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "base/unique_qptr.h"
+#include "boxes/auto_download_box.h"
+#include "core/application.h"
+#include "data/data_auto_download.h"
+#include "data/data_session.h"
+#include "main/main_account.h"
+#include "main/main_domain.h"
+#include "main/main_session.h"
+#include "main/main_session_settings.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
 #include "ui/layers/generic_box.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/wrap/vertical_layout.h"
+#include "window/window_controller.h"
 #include "window/window_session_controller.h"
 
 #include "styles/style_menu_icons.h"
@@ -166,6 +176,72 @@ void BuildUnreadCounter(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	});
 }
 
+void SyncAutoDownloadToAllSessions(not_null<::Main::Session*> from) {
+	const auto saved = from->settings().autoDownload().serialize();
+	for (const auto &[index, account] : Core::App().domain().accounts()) {
+		const auto session = account->maybeSession();
+		if (!session || session == from) {
+			continue;
+		}
+		session->settings().autoDownload().setFromSerialized(saved);
+		session->saveSettingsDelayed();
+		session->data().photoLoadSettingsChanged();
+		session->data().documentLoadSettingsChanged();
+	}
+}
+
+void AddAutoDownloadButton(
+		SectionBuilder &builder,
+		QString id,
+		rpl::producer<QString> title,
+		Data::AutoDownload::Source source,
+		IconDescriptor &&icon) {
+	builder.addButton({
+		.id = std::move(id),
+		.title = std::move(title),
+		.icon = std::move(icon),
+		.onClick = [=] {
+			const auto window = Core::App().activeWindow();
+			const auto controller = window
+				? window->sessionController()
+				: nullptr;
+			if (!controller) {
+				return;
+			}
+			const auto session = &controller->session();
+			auto box = Box<AutoDownloadBox>(session, source);
+			const auto raw = box.data();
+			window->show(std::move(box));
+			QObject::connect(raw, &QObject::destroyed, [=] {
+				SyncAutoDownloadToAllSessions(session);
+			});
+		},
+	});
+}
+
+void BuildAutoDownload(SectionBuilder &builder) {
+	builder.addSubsectionTitle(tr::lng_media_auto_settings());
+
+	AddAutoDownloadButton(
+		builder,
+		u"echo/autoDownloadPrivate"_q,
+		tr::lng_media_auto_in_private(),
+		Data::AutoDownload::Source::User,
+		{ &st::menuIconProfile });
+	AddAutoDownloadButton(
+		builder,
+		u"echo/autoDownloadGroups"_q,
+		tr::lng_media_auto_in_groups(),
+		Data::AutoDownload::Source::Group,
+		{ &st::menuIconGroups });
+	AddAutoDownloadButton(
+		builder,
+		u"echo/autoDownloadChannels"_q,
+		tr::lng_media_auto_in_channels(),
+		Data::AutoDownload::Source::Channel,
+		{ &st::menuIconChannel });
+}
+
 void BuildAccountList(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	builder.addSubsectionTitle(rpl::single(u"account list"_q));
 
@@ -215,6 +291,8 @@ const auto kMeta = BuildHelper({
 	BuildNotifications(builder, ayu);
 	AddSeparator(builder);
 	BuildUnreadCounter(builder, ayu);
+	AddSeparator(builder);
+	BuildAutoDownload(builder);
 	AddSeparator(builder);
 	BuildAccountList(builder, ayu);
 	AddSeparator(builder);
