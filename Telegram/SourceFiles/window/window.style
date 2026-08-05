@@ -100,8 +100,8 @@ mainMenuAddAccountButton: SettingsButton(mainMenuButton) {
 
 mainMenuAccountSize: 26px;
 mainMenuAccountLine: 2px;
-mainMenuBadgeFont: font(11px bold);
-mainMenuBadgeSize: 18px;
+mainMenuBadgeFont: font(10px bold);
+mainMenuBadgeSize: 15px;
 
 mainMenuTelegramLabel: FlatLabel(defaultFlatLabel) {
 	align: align(left);
