@@ -328,6 +328,14 @@ System::SkipState System::skipNotification(
 			&& skipSentNotification(item, _sentPollVoteNotifications))) {
 		return { SkipState::Skip };
 	}
+	const auto &settings = AyuSettings::getInstance();
+	if (messageType
+		&& settings.disableGroupMentionNotifications()
+		&& item->mentionsMe()
+		&& !item->history()->peer->isUser()
+		&& !settings.mentionMatchesAnyFilter(item->originalText().text)) {
+		return { SkipState::Skip };
+	}
 	return computeSkipState(notification);
 }
 
