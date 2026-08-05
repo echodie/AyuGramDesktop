@@ -1,0 +1,6 @@
+using "ui/basic.style";
+using "ui/widgets/widgets.style";
+
+echoAccountPhoneLabel: FlatLabel(defaultFlatLabel) {
+	textFg: windowSubTextFg;
+}
