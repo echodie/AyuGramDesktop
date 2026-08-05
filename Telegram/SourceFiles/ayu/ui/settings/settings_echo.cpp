@@ -166,6 +166,17 @@ void BuildUnreadCounter(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	});
 }
 
+void BuildAccountList(SectionBuilder &builder, AyuSectionBuilder &ayu) {
+	builder.addSubsectionTitle(rpl::single(u"account list"_q));
+
+	ayu.addSettingToggle({
+		.id = u"echo/showPhoneInAccountList"_q,
+		.title = rpl::single(u"show phone number"_q),
+		.getter = &AyuSettings::showPhoneInAccountList,
+		.setter = &AyuSettings::setShowPhoneInAccountList,
+	});
+}
+
 void BuildSaveSection(
 		SectionBuilder &builder,
 		AyuSectionBuilder &ayu,
@@ -204,6 +215,8 @@ const auto kMeta = BuildHelper({
 	BuildNotifications(builder, ayu);
 	AddSeparator(builder);
 	BuildUnreadCounter(builder, ayu);
+	AddSeparator(builder);
+	BuildAccountList(builder, ayu);
 	AddSeparator(builder);
 	BuildSaveSection(
 		builder,

@@ -74,8 +74,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QBuffer>
 
 // AyuGram includes
+#include "ayu/ayu_settings.h"
 #include "ayu/ui/ayu_userpic.h"
 #include "ayu/utils/telegram_helpers.h"
+#include "styles/style_echo.h"
 #include "styles/style_info.h"
 
 
@@ -101,6 +103,15 @@ struct InformationHighlightTargets {
 constexpr auto kSaveBioTimeout = 1000;
 constexpr auto kPlayStatusLimit = 12;
 
+[[nodiscard]] const style::FlatLabel &AccountPhoneLabelStyle() {
+	static const auto result = [] {
+		auto st = st::echoAccountPhoneLabel;
+		st.style.font = st.style.font->monospace();
+		return st;
+	}();
+	return result;
+}
+
 class ComposedBadge final : public Ui::RpWidget {
 public:
 	ComposedBadge(
@@ -109,9 +120,12 @@ public:
 		not_null<::Main::Session*> session,
 		rpl::producer<QString> &&text,
 		bool hasUnread,
-		Fn<bool()> animationPaused);
+		Fn<bool()> animationPaused,
+		int unreadRightOffset = 0);
 
 private:
+	const int _unreadRightOffset = 0;
+
 	rpl::variable<QString> _text;
 	rpl::event_stream<int> _unreadWidth;
 	rpl::event_stream<int> _premiumWidth;
@@ -129,8 +143,10 @@ ComposedBadge::ComposedBadge(
 	not_null<::Main::Session*> session,
 	rpl::producer<QString> &&text,
 	bool hasUnread,
-	Fn<bool()> animationPaused)
+	Fn<bool()> animationPaused,
+	int unreadRightOffset)
 : Ui::RpWidget(parent)
+, _unreadRightOffset(unreadRightOffset)
 , _text(std::move(text))
 , _badge(
 		this,
@@ -221,7 +237,8 @@ ComposedBadge::ComposedBadge(
 			+ premiumWidth
 			+ exteraGap
 			+ exteraWidth
-			+ skip;
+			+ skip
+			+ _unreadRightOffset;
 		const auto maxTextWidth = buttonSize.width()
 			- minWidth
 			- st.padding.right();
@@ -242,7 +259,7 @@ ComposedBadge::ComposedBadge(
 			buttonSize.height() - st.padding.top());
 		if (_unread) {
 			_unread->moveToRight(
-				0,
+				_unreadRightOffset,
 				(buttonSize.height() - _unread->height()) / 2);
 		}
 	}, lifetime());
@@ -885,7 +902,32 @@ void SetupAccountsWrap(
 		st::mainMenuAddAccountButton);
 	const auto raw = result.data();
 
+	const auto phone = user->phone();
+	const auto showPhone = AyuSettings::getInstance().showPhoneInAccountList()
+		&& !phone.isEmpty();
+	const auto phoneText = showPhone ? (u"*"_q + phone.right(4)) : QString();
+	const auto phoneWidth = showPhone
+		? AccountPhoneLabelStyle().style.font->width(phoneText)
+		: 0;
+	if (showPhone) {
+		const auto label = Ui::CreateChild<Ui::FlatLabel>(
+			raw,
+			phoneText,
+			AccountPhoneLabelStyle());
+		label->setAttribute(Qt::WA_TransparentForMouseEvents);
+		raw->sizeValue(
+		) | rpl::on_next([=](QSize size) {
+			label->moveToRight(
+				st::mainMenuAddAccountButton.padding.right(),
+				(size.height() - label->height()) / 2,
+				size.width());
+		}, label->lifetime());
+	}
+
 	{
+		const auto unreadRightOffset = phoneWidth
+			? (phoneWidth + st::normalFont->spacew)
+			: 0;
 		const auto container = Badge::AddRight(raw, st::mainMenuAccountLine);
 		const auto composedBadge = Ui::CreateChild<ComposedBadge>(
 			container.get(),
@@ -894,7 +936,8 @@ void SetupAccountsWrap(
 			std::move(text),
 			!active,
 			[=] { return window->isGifPausedAtLeastFor(
-				Window::GifPauseReason::Layer); });
+				Window::GifPauseReason::Layer); },
+			unreadRightOffset);
 		composedBadge->sizeValue(
 		) | rpl::on_next([=](const QSize &s) {
 			container->resize(s);

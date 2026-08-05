@@ -1015,6 +1015,12 @@ void AyuSettings::setDisableGroupMentionNotifications(bool val) {
 	save();
 }
 
+void AyuSettings::setShowPhoneInAccountList(bool val) {
+	if (_showPhoneInAccountList.current() == val) return;
+	_showPhoneInAccountList = val;
+	save();
+}
+
 void AyuSettings::setMentionFilters(std::vector<MentionFilter> val) {
 	if (_mentionFilters == val) return;
 	_mentionFilters = std::move(val);
@@ -1237,6 +1243,7 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"hideNotificationBadge", s._hideNotificationBadge.current()},
 		{"excludeMentionsFromUnreadCount", s._excludeMentionsFromUnreadCount.current()},
 		{"disableGroupMentionNotifications", s._disableGroupMentionNotifications.current()},
+		{"showPhoneInAccountList", s._showPhoneInAccountList.current()},
 		{"mentionFilters", s._mentionFilters},
 		{"hideAllChatsFolder", s._hideAllChatsFolder.current()},
 		{"channelBottomButton", s._channelBottomButton.current()},
@@ -1348,6 +1355,7 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._hideNotificationBadge = j.value("hideNotificationBadge", defaults._hideNotificationBadge.current());
 	s._excludeMentionsFromUnreadCount = j.value("excludeMentionsFromUnreadCount", defaults._excludeMentionsFromUnreadCount.current());
 	s._disableGroupMentionNotifications = j.value("disableGroupMentionNotifications", defaults._disableGroupMentionNotifications.current());
+	s._showPhoneInAccountList = j.value("showPhoneInAccountList", defaults._showPhoneInAccountList.current());
 	s._mentionFilters = j.value("mentionFilters", defaults._mentionFilters);
 	s._hideAllChatsFolder = j.value("hideAllChatsFolder", defaults._hideAllChatsFolder.current());
 	s._channelBottomButton = j.value("channelBottomButton", defaults._channelBottomButton.current());

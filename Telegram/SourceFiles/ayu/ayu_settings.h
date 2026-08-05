@@ -353,6 +353,7 @@ public:
 	[[nodiscard]] bool hideNotificationBadge() const { return _hideNotificationBadge.current(); }
 	[[nodiscard]] bool excludeMentionsFromUnreadCount() const { return _excludeMentionsFromUnreadCount.current(); }
 	[[nodiscard]] bool disableGroupMentionNotifications() const { return _disableGroupMentionNotifications.current(); }
+	[[nodiscard]] bool showPhoneInAccountList() const { return _showPhoneInAccountList.current(); }
 	[[nodiscard]] const std::vector<MentionFilter> &mentionFilters() const { return _mentionFilters; }
 	[[nodiscard]] bool mentionMatchesAnyFilter(const QString &text) const;
 	[[nodiscard]] bool hideAllChatsFolder() const { return _hideAllChatsFolder.current(); }
@@ -448,6 +449,7 @@ public:
 	void setHideNotificationBadge(bool val);
 	void setExcludeMentionsFromUnreadCount(bool val);
 	void setDisableGroupMentionNotifications(bool val);
+	void setShowPhoneInAccountList(bool val);
 	void setMentionFilters(std::vector<MentionFilter> val);
 	void setHideAllChatsFolder(bool val);
 	void setChannelBottomButton(ChannelBottomButton val);
@@ -726,6 +728,7 @@ private:
 	rpl::variable<bool> _hideNotificationBadge = false;
 	rpl::variable<bool> _excludeMentionsFromUnreadCount = false;
 	rpl::variable<bool> _disableGroupMentionNotifications = false;
+	rpl::variable<bool> _showPhoneInAccountList = false;
 	std::vector<MentionFilter> _mentionFilters;
 	rpl::variable<bool> _hideAllChatsFolder = false;
 	rpl::variable<ChannelBottomButton> _channelBottomButton = ChannelBottomButton::DiscussWithFallback;
