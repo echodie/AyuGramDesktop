@@ -34,7 +34,7 @@ SessionSettings::SessionSettings()
 }
 
 QByteArray SessionSettings::serialize() const {
-	const auto autoDownload = _autoDownload.serialize();
+	const auto autoDownload = _autoDownload->serialize();
 	auto size = sizeof(qint32) // kVersionTag
 		+ sizeof(qint32) // kVersion
 		+ sizeof(qint32) // _selectorTab
@@ -751,13 +751,13 @@ void SessionSettings::addFromSerialized(const QByteArray &serialized) {
 		return;
 	}
 	if (!autoDownload.isEmpty()
-		&& !_autoDownload.setFromSerialized(autoDownload)) {
+		&& !_autoDownload->setFromSerialized(autoDownload)) {
 		return;
 	}
 	if (!version) {
 		if (!legacyAutoplayGifs) {
 			using namespace Data::AutoDownload;
-			_autoDownload = WithDisabledAutoPlay(_autoDownload);
+			*_autoDownload = WithDisabledAutoPlay(*_autoDownload);
 		}
 	}
 

@@ -245,6 +245,8 @@ set(ayugram_files
         ayu/features/translator/implementations/yandex.h
         ayu/features/translator/implementations/base.cpp
         ayu/features/translator/implementations/base.h
+        ayu/features/auto_download.cpp
+        ayu/features/auto_download.h
         ayu/features/filters/filters_controller.cpp
         ayu/features/filters/filters_controller.h
         ayu/features/filters/filters_cache_controller.cpp

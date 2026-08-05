@@ -334,6 +334,9 @@ bool Full::setFromSerialized(const QByteArray &serialized) {
 			}
 		}
 	}
+	if (stream.status() != QDataStream::Ok) {
+		return false;
+	}
 	_data = temp._data;
 	_peerOverrides = std::move(temp._peerOverrides);
 	return true;

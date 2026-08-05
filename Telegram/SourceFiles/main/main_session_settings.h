@@ -13,6 +13,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_message_reaction_id.h"
 #include "ui/rect_part.h"
 
+#include <memory>
+
 namespace Support {
 enum class SwitchSettings;
 } // namespace Support
@@ -93,10 +95,14 @@ public:
 	}
 
 	[[nodiscard]] Data::AutoDownload::Full &autoDownload() {
-		return _autoDownload;
+		return *_autoDownload;
 	}
 	[[nodiscard]] const Data::AutoDownload::Full &autoDownload() const {
-		return _autoDownload;
+		return *_autoDownload;
+	}
+	void setAutoDownload(std::shared_ptr<Data::AutoDownload::Full> settings) {
+		Expects(settings != nullptr);
+		_autoDownload = std::move(settings);
 	}
 
 	void setArchiveCollapsed(bool collapsed);
@@ -217,7 +223,8 @@ private:
 	base::flat_set<PeerId> _groupStickersSectionHidden;
 	base::flat_set<PeerId> _groupEmojiSectionHidden;
 	bool _hadLegacyCallsPeerToPeerNobody = false;
-	Data::AutoDownload::Full _autoDownload;
+	std::shared_ptr<Data::AutoDownload::Full> _autoDownload
+		= std::make_shared<Data::AutoDownload::Full>();
 	rpl::variable<bool> _archiveCollapsed = false;
 	rpl::variable<bool> _archiveInMainMenu = false;
 	base::flat_map<ThreadId, MsgId> _hiddenPinnedMessages;

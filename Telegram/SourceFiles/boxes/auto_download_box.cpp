@@ -28,6 +28,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_settings.h"
 
+// AyuGram includes
+#include "ayu/features/auto_download.h"
+
+
 namespace {
 
 constexpr auto kMegabyte = 1024 * 1024;
@@ -64,8 +68,8 @@ struct PeerBuckets {
 		Source source) {
 	auto result = PeerBuckets();
 	settings.enumeratePeerOverrides([&](PeerId peerId, Override value) {
-		const auto peer = owner->peer(peerId);
-		if (!PeerMatchesSource(peer, source)) {
+		const auto peer = owner->peerLoaded(peerId);
+		if (!peer || !PeerMatchesSource(peer, source)) {
 			return;
 		} else if (value == Override::ForceAllow) {
 			result.always.emplace(peerId);
@@ -260,6 +264,7 @@ void AutoDownloadBox::setupContent() {
 
 	const auto staged = content->lifetime().make_state<PeerBuckets>(
 		BucketsForSource(*settings, &_session->data(), _source));
+	const auto initial = *staged;
 
 	AddSkip(content);
 	AddDivider(content);
@@ -391,24 +396,10 @@ void AutoDownloadBox::setupContent() {
 			return (now > 0) && (now != limitByType(type));
 		});
 
-		const auto current = BucketsForSource(
-			*settings,
-			&_session->data(),
-			_source);
-		const auto exceptionsChanged = (current.always != staged->always)
-			|| (current.never != staged->never);
-		const auto exceptionsAllowMore = ranges::any_of(
-			staged->always,
-			[&](PeerId id) { return !current.always.contains(id); }
-		) || ranges::any_of(
-			current.never,
-			[&](PeerId id) { return !staged->never.contains(id); });
-		const auto exceptionsAllowLess = ranges::any_of(
-			staged->never,
-			[&](PeerId id) { return !current.never.contains(id); }
-		) || ranges::any_of(
-			current.always,
-			[&](PeerId id) { return !staged->always.contains(id); });
+		const auto exceptionsChanged = (initial.always != staged->always)
+			|| (initial.never != staged->never);
+		auto exceptionsAllowMore = false;
+		auto exceptionsAllowLess = false;
 
 		if (changed) {
 			for (const auto &[type, enabled] : values) {
@@ -428,35 +419,48 @@ void AutoDownloadBox::setupContent() {
 			}
 		}
 		if (exceptionsChanged) {
-			for (const auto &peerId : current.always) {
-				if (!staged->always.contains(peerId)) {
-					settings->setPeerOverride(peerId, Override::Default);
+			const auto apply = [&](PeerId peerId, Override value) {
+				const auto was = settings->peerOverride(peerId);
+				if (was == value) {
+					return;
+				}
+				exceptionsAllowMore |= (was == Override::ForceDeny)
+					|| (value == Override::ForceAllow);
+				exceptionsAllowLess |= (was == Override::ForceAllow)
+					|| (value == Override::ForceDeny);
+				settings->setPeerOverride(peerId, value);
+			};
+			for (const auto &peerId : initial.always) {
+				if (!staged->always.contains(peerId)
+					&& !staged->never.contains(peerId)) {
+					apply(peerId, Override::Default);
 				}
 			}
-			for (const auto &peerId : current.never) {
-				if (!staged->never.contains(peerId)) {
-					settings->setPeerOverride(peerId, Override::Default);
+			for (const auto &peerId : initial.never) {
+				if (!staged->never.contains(peerId)
+					&& !staged->always.contains(peerId)) {
+					apply(peerId, Override::Default);
 				}
 			}
 			for (const auto &peerId : staged->always) {
-				settings->setPeerOverride(peerId, Override::ForceAllow);
+				if (!initial.always.contains(peerId)) {
+					apply(peerId, Override::ForceAllow);
+				}
 			}
 			for (const auto &peerId : staged->never) {
-				settings->setPeerOverride(peerId, Override::ForceDeny);
+				if (!initial.never.contains(peerId)) {
+					apply(peerId, Override::ForceDeny);
+				}
 			}
 		}
 		if (changed || hiddenChanged || exceptionsChanged) {
-			_session->saveSettingsDelayed();
-		}
-		if (allowMoreTypes.contains(Type::Photo) || exceptionsAllowMore) {
-			_session->data().photoLoadSettingsChanged();
-		}
-		if (ranges::any_of(allowMoreTypes, _1 != Type::Photo)
-			|| exceptionsAllowMore) {
-			_session->data().documentLoadSettingsChanged();
-		}
-		if (less || exceptionsAllowLess) {
-			_session->data().checkPlayingAnimations();
+			Ayu::AutoDownload::Save(_session, {
+				.photos = allowMoreTypes.contains(Type::Photo)
+					|| exceptionsAllowMore,
+				.documents = ranges::any_of(allowMoreTypes, _1 != Type::Photo)
+					|| exceptionsAllowMore,
+				.animations = less || exceptionsAllowLess,
+			});
 		}
 		closeBox();
 	});

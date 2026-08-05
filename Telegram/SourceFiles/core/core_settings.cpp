@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
+#include "ayu/features/auto_download.h"
 
 
 namespace Core {
@@ -1323,6 +1324,14 @@ void Settings::clearPref(std::string_view key) {
 	_saveDelayed.fire({});
 }
 
+std::shared_ptr<Data::AutoDownload::Full> Settings::autoDownload(
+		const Data::AutoDownload::Full &fallback) {
+	if (!_autoDownload) {
+		_autoDownload = Ayu::AutoDownload::Load(fallback);
+	}
+	return _autoDownload;
+}
+
 void Settings::writePrefGeneric(
 		std::string_view key,
 		const QByteArray &value) {
@@ -1757,7 +1766,12 @@ void Settings::resetOnLastLogout() {
 	_storiesClickTooltipHidden = false;
 	_ttlVoiceClickTooltipHidden = false;
 	const auto srDisabled = readPref<bool>(kScreenReaderModeDisabledKey);
+	const auto autoDownload = readPref<QByteArray>(
+		Ayu::AutoDownload::kSettingsKey);
 	_prefs.clear();
+	if (!autoDownload.isEmpty()) {
+		writePref<QByteArray>(Ayu::AutoDownload::kSettingsKey, autoDownload);
+	}
 	if (srDisabled) {
 		writePref<bool>(kScreenReaderModeDisabledKey, true);
 	}

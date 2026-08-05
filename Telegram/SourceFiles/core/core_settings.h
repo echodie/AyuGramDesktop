@@ -16,8 +16,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/flags.h"
 #include "emoji.h"
 
+#include <memory>
+
 enum class RectPart;
 struct LanguageId;
+
+namespace Data::AutoDownload {
+class Full;
+} // namespace Data::AutoDownload
 
 namespace Ui {
 enum class InputSubmitSettings;
@@ -193,6 +199,8 @@ public:
 	void setAskDownloadPath(bool value) {
 		_askDownloadPath = value;
 	}
+	[[nodiscard]] std::shared_ptr<Data::AutoDownload::Full> autoDownload(
+		const Data::AutoDownload::Full &fallback);
 	[[nodiscard]] QString downloadPath() const {
 		return _downloadPath.current();
 	}
@@ -1213,6 +1221,7 @@ private:
 	rpl::variable<Ui::ChatsFiltersTabsMode> _chatFiltersTabsMode
 		= Ui::ChatsFiltersTabsMode::Default;
 	base::flat_map<QByteArray, QByteArray> _prefs;
+	std::shared_ptr<Data::AutoDownload::Full> _autoDownload;
 
 	bool _tabbedReplacedWithInfo = false; // per-window
 	rpl::event_stream<bool> _tabbedReplacedWithInfoValue; // per-window

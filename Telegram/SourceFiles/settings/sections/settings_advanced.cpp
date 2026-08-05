@@ -83,6 +83,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <ksandbox.h>
 
+// AyuGram includes
+#include "ayu/features/auto_download.h"
+
+
 namespace Settings {
 namespace {
 
@@ -216,7 +220,6 @@ void BuildDataStorageSection(SectionBuilder &builder) {
 
 void BuildAutoDownloadSection(SectionBuilder &builder) {
 	const auto controller = builder.controller();
-	const auto container = builder.container();
 	const auto session = builder.session();
 	builder.addDivider();
 	builder.addSkip();
@@ -228,12 +231,6 @@ void BuildAutoDownloadSection(SectionBuilder &builder) {
 
 	using Source = Data::AutoDownload::Source;
 
-	struct State {
-		rpl::event_stream<> changes;
-	};
-	const auto state = container
-		? container->lifetime().make_state<State>()
-		: nullptr;
 	const auto shouldBeChecked = [=](Source source) {
 		return HasEnabledTypes(session->settings().autoDownload(), source);
 	};
@@ -248,11 +245,7 @@ void BuildAutoDownloadSection(SectionBuilder &builder) {
 			.title = std::move(title),
 			.icon = { icon },
 			.onClick = [=] {
-				auto box = Box<AutoDownloadBox>(session, source);
-				box->boxClosing() | rpl::on_next(crl::guard(container, [=] {
-					state->changes.fire({});
-				}), box->lifetime());
-				controller->show(std::move(box));
+				controller->show(Box<AutoDownloadBox>(session, source));
 			},
 			.keywords = std::move(keywords),
 		});
@@ -263,7 +256,7 @@ void BuildAutoDownloadSection(SectionBuilder &builder) {
 			row,
 			st::settingsButton,
 			shouldBeChecked(source));
-		state->changes.events() | rpl::on_next([=] {
+		Ayu::AutoDownload::Changes() | rpl::on_next([=] {
 			checkView->setChecked(shouldBeChecked(source), anim::type::normal);
 		}, row->lifetime());
 		toggle->clicks() | rpl::on_next([=] {
@@ -271,14 +264,14 @@ void BuildAutoDownloadSection(SectionBuilder &builder) {
 			const auto enable = !checkView->checked();
 			if (enable) {
 				SetDefaultsForSource(data, source);
-				session->data().photoLoadSettingsChanged();
-				session->data().documentLoadSettingsChanged();
 			} else {
 				SetDisabledForSource(data, source);
-				session->data().checkPlayingAnimations();
 			}
-			session->saveSettingsDelayed();
-			state->changes.fire({});
+			Ayu::AutoDownload::Save(session, {
+				.photos = enable,
+				.documents = enable,
+				.animations = !enable,
+			});
 		}, toggle->lifetime());
 	};
 

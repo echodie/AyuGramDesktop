@@ -40,6 +40,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 
 // AyuGram includes
+#include "ayu/features/auto_download.h"
 #include "ayu/ui/ayu_logo.h"
 
 
@@ -57,6 +58,7 @@ void PrepareSupportMode(not_null<Main::Session*> session) {
 	Core::App().saveSettings();
 
 	session->settings().autoDownload() = Full::FullDisabled();
+	Ayu::AutoDownload::Save(session, { .animations = true });
 	session->saveSettings();
 }
 

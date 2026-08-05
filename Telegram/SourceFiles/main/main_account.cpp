@@ -28,6 +28,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_domain.h"
 #include "main/main_session_settings.h"
 
+// AyuGram includes
+#include "core/core_settings.h"
+
+
 namespace Main {
 namespace {
 
@@ -192,6 +196,8 @@ void Account::createSession(
 	Expects(_session == nullptr);
 	Expects(_sessionValue.current() == nullptr);
 
+	settings->setAutoDownload(Core::App().settings().autoDownload(
+		settings->autoDownload()));
 	_session = std::make_unique<Session>(this, user, std::move(settings));
 	if (!serialized.isEmpty()) {
 		local().readSelf(_session.get(), serialized, streamVersion);
