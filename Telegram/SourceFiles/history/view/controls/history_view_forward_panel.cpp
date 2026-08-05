@@ -257,17 +257,16 @@ void ForwardPanel::editToNextOption() {
 	if (_data.items.empty()) {
 		return;
 	}
-	const auto captionsCount = ItemsForwardCaptionsCount(_data.items);
 	const auto now = NormalizeForwardOptions(
 		&_to->session(),
 		_data.items,
 		_data.options);
-	const auto next = (now == Options::PreserveInfo)
-		? Options::NoSenderNames
-		: ((now == Options::NoSenderNames) && captionsCount)
+	const auto hidden = ItemsForwardCaptionsCount(_data.items)
 		? Options::NoNamesAndCaptions
-		: Options::PreserveInfo;
-	applyOptions(next);
+		: Options::NoSenderNames;
+	applyOptions((now == Options::PreserveInfo)
+		? hidden
+		: Options::PreserveInfo);
 }
 
 void ForwardPanel::paint(
