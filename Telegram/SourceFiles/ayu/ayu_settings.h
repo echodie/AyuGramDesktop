@@ -14,6 +14,7 @@
 
 #include <map>
 #include <unordered_set>
+#include <vector>
 
 
 namespace Main {
@@ -237,6 +238,18 @@ private:
 void to_json(nlohmann::json &j, const MessageShotSettings &s);
 void from_json(const nlohmann::json &j, MessageShotSettings &s);
 
+struct MentionFilter {
+	QString pattern;
+	QString description;
+	bool enabled = true;
+	bool caseSensitive = false;
+	bool reversed = false;
+	bool operator==(const MentionFilter &) const = default;
+};
+
+void to_json(nlohmann::json &j, const MentionFilter &f);
+void from_json(const nlohmann::json &j, MentionFilter &f);
+
 class AyuSettings {
 public:
 	AyuSettings(const AyuSettings &) = delete;
@@ -339,6 +352,9 @@ public:
 	[[nodiscard]] bool hideNotificationCounters() const { return _hideNotificationCounters.current(); }
 	[[nodiscard]] bool hideNotificationBadge() const { return _hideNotificationBadge.current(); }
 	[[nodiscard]] bool excludeMentionsFromUnreadCount() const { return _excludeMentionsFromUnreadCount.current(); }
+	[[nodiscard]] bool disableGroupMentionNotifications() const { return _disableGroupMentionNotifications.current(); }
+	[[nodiscard]] const std::vector<MentionFilter> &mentionFilters() const { return _mentionFilters; }
+	[[nodiscard]] bool mentionMatchesAnyFilter(const QString &text) const;
 	[[nodiscard]] bool hideAllChatsFolder() const { return _hideAllChatsFolder.current(); }
 	[[nodiscard]] ChannelBottomButton channelBottomButton() const { return _channelBottomButton.current(); }
 	[[nodiscard]] bool quickAdminShortcuts() const { return _quickAdminShortcuts.current(); }
@@ -431,6 +447,8 @@ public:
 	void setHideNotificationCounters(bool val);
 	void setHideNotificationBadge(bool val);
 	void setExcludeMentionsFromUnreadCount(bool val);
+	void setDisableGroupMentionNotifications(bool val);
+	void setMentionFilters(std::vector<MentionFilter> val);
 	void setHideAllChatsFolder(bool val);
 	void setChannelBottomButton(ChannelBottomButton val);
 	void setQuickAdminShortcuts(bool val);
@@ -707,6 +725,8 @@ private:
 	rpl::variable<bool> _hideNotificationCounters = false;
 	rpl::variable<bool> _hideNotificationBadge = false;
 	rpl::variable<bool> _excludeMentionsFromUnreadCount = false;
+	rpl::variable<bool> _disableGroupMentionNotifications = false;
+	std::vector<MentionFilter> _mentionFilters;
 	rpl::variable<bool> _hideAllChatsFolder = false;
 	rpl::variable<ChannelBottomButton> _channelBottomButton = ChannelBottomButton::DiscussWithFallback;
 	rpl::variable<bool> _quickAdminShortcuts = true;

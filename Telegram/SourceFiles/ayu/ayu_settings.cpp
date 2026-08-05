@@ -23,6 +23,7 @@
 
 #include <fstream>
 #include <QApplication>
+#include <QtCore/QRegularExpression>
 
 using json = nlohmann::json;
 
@@ -969,6 +970,57 @@ void AyuSettings::setHideNotificationBadge(bool val) {
 	save();
 }
 
+void to_json(nlohmann::json &j, const MentionFilter &f) {
+	j = nlohmann::json{
+		{"pattern", f.pattern},
+		{"description", f.description},
+		{"enabled", f.enabled},
+		{"caseSensitive", f.caseSensitive},
+		{"reversed", f.reversed},
+	};
+}
+
+void from_json(const nlohmann::json &j, MentionFilter &f) {
+	f.pattern = j.value("pattern", QString());
+	f.description = j.value("description", QString());
+	f.enabled = j.value("enabled", true);
+	f.caseSensitive = j.value("caseSensitive", false);
+	f.reversed = j.value("reversed", false);
+}
+
+bool AyuSettings::mentionMatchesAnyFilter(const QString &text) const {
+	for (const auto &filter : _mentionFilters) {
+		if (!filter.enabled || filter.pattern.isEmpty()) {
+			continue;
+		}
+		auto options = QRegularExpression::PatternOptions();
+		if (!filter.caseSensitive) {
+			options |= QRegularExpression::CaseInsensitiveOption;
+		}
+		const auto expression = QRegularExpression(filter.pattern, options);
+		if (!expression.isValid()) {
+			continue;
+		}
+		const auto matched = expression.match(text).hasMatch();
+		if (filter.reversed ? !matched : matched) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void AyuSettings::setDisableGroupMentionNotifications(bool val) {
+	if (_disableGroupMentionNotifications.current() == val) return;
+	_disableGroupMentionNotifications = val;
+	save();
+}
+
+void AyuSettings::setMentionFilters(std::vector<MentionFilter> val) {
+	if (_mentionFilters == val) return;
+	_mentionFilters = std::move(val);
+	save();
+}
+
 void AyuSettings::setExcludeMentionsFromUnreadCount(bool val) {
 	if (_excludeMentionsFromUnreadCount.current() == val) return;
 	_excludeMentionsFromUnreadCount = val;
@@ -1184,6 +1236,8 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"hideNotificationCounters", s._hideNotificationCounters.current()},
 		{"hideNotificationBadge", s._hideNotificationBadge.current()},
 		{"excludeMentionsFromUnreadCount", s._excludeMentionsFromUnreadCount.current()},
+		{"disableGroupMentionNotifications", s._disableGroupMentionNotifications.current()},
+		{"mentionFilters", s._mentionFilters},
 		{"hideAllChatsFolder", s._hideAllChatsFolder.current()},
 		{"channelBottomButton", s._channelBottomButton.current()},
 		{"quickAdminShortcuts", s._quickAdminShortcuts.current()},
@@ -1293,6 +1347,8 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._hideNotificationCounters = j.value("hideNotificationCounters", defaults._hideNotificationCounters.current());
 	s._hideNotificationBadge = j.value("hideNotificationBadge", defaults._hideNotificationBadge.current());
 	s._excludeMentionsFromUnreadCount = j.value("excludeMentionsFromUnreadCount", defaults._excludeMentionsFromUnreadCount.current());
+	s._disableGroupMentionNotifications = j.value("disableGroupMentionNotifications", defaults._disableGroupMentionNotifications.current());
+	s._mentionFilters = j.value("mentionFilters", defaults._mentionFilters);
 	s._hideAllChatsFolder = j.value("hideAllChatsFolder", defaults._hideAllChatsFolder.current());
 	s._channelBottomButton = j.value("channelBottomButton", defaults._channelBottomButton.current());
 	s._quickAdminShortcuts = j.value("quickAdminShortcuts", defaults._quickAdminShortcuts.current());
