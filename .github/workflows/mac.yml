@@ -1,0 +1,96 @@
+name: mac
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    env:
+      ONLY_CACHE: "false"
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      LIBRARIES_CACHE_VERSION: "v2"
+
+    steps:
+      - name: clone
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          path: AyuGramDesktop
+
+      - name: setup
+        run: |
+          sudo chown -R `whoami`:admin /usr/local/share
+          brew update
+          brew upgrade || true
+          brew install automake libtool meson nasm ninja pkg-config
+          sudo mdutil -a -i off
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' /opt/homebrew/share/cmake/Modules/Compiler/GNU.cmake
+
+      - name: libraries cache
+        id: libs
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ runner.os }}-libs-${{ env.LIBRARIES_CACHE_VERSION }}-${{ hashFiles(format('AyuGramDesktop/{0}', env.PREPARE_PATH)) }}
+          restore-keys: ${{ runner.os }}-libs-${{ env.LIBRARIES_CACHE_VERSION }}-
+
+      - name: libraries
+        run: |
+          df -h /
+          ./AyuGramDesktop/Telegram/build/prepare/mac.sh silent
+          df -h /
+
+      - name: slim libraries
+        run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/pkgconfig/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 ')' -type f ')' -o -empty ')' -delete
+
+      - name: verify libraries
+        run: PKG_CONFIG_PATH="$PWD/Libraries/local/lib/pkgconfig" pkg-config --print-errors --exists openh264
+
+      - name: save libraries cache
+        if: success() && steps.libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ runner.os }}-libs-${{ env.LIBRARIES_CACHE_VERSION }}-${{ hashFiles(format('AyuGramDesktop/{0}', env.PREPARE_PATH)) }}
+
+      - name: build
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd AyuGramDesktop/Telegram
+          ./configure.sh \
+            -D CMAKE_CONFIGURATION_TYPES=Release \
+            -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -D TDESKTOP_API_ID=2040 \
+            -D TDESKTOP_API_HASH=b18441a1ff607e10a989891a5462e627 \
+            -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+            -D DESKTOP_APP_MAC_ARCH=arm64 \
+            -D CMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -D CMAKE_CXX_FLAGS=-DMETA_NO_STD_FORWARD_DECLARATIONS \
+            -D CMAKE_OBJCXX_FLAGS=-DMETA_NO_STD_FORWARD_DECLARATIONS \
+            -D CMAKE_EXE_LINKER_FLAGS="-Wl,-x"
+          cmake --build ../out --config Release --parallel
+
+      - name: pack
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd AyuGramDesktop/out/Release
+          strip AyuGram.app/Contents/MacOS/AyuGram
+          codesign --force --sign - --deep AyuGram.app
+          mkdir artifact
+          mv AyuGram.app artifact/
+
+      - name: upload
+        if: env.ONLY_CACHE == 'false'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ayugram-mac
+          path: AyuGramDesktop/out/Release/artifact/
