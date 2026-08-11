@@ -259,6 +259,10 @@ public:
 	[[nodiscard]] HistoryItem *lastServerMessage() const;
 	[[nodiscard]] bool lastMessageKnown() const;
 	[[nodiscard]] bool lastServerMessageKnown() const;
+	[[nodiscard]] bool isAyuDeletedDialog() const;
+	[[nodiscard]] uint64 beginAyuServerHistoryCheck();
+	void applyAyuServerHistoryCheck(uint64 generation, bool empty);
+	void invalidateAyuServerHistoryCheck();
 	void unknownMessageDeleted(MsgId messageId);
 	[[nodiscard]] bool isUnknownMessageDeleted(MsgId messageId) const;
 	void applyDialogTopMessage(MsgId topMessageId);
@@ -660,6 +664,7 @@ private:
 	HistoryItem *_newPeerPhotoChange = nullptr;
 	bool _loadedAtTop = false;
 	bool _loadedAtBottom = true;
+	bool _ayuServerHistoryEmpty = false;
 
 	std::optional<Data::Folder*> _folder;
 	Data::CommunityInfo *_communityInfo = nullptr;
@@ -671,6 +676,7 @@ private:
 	rpl::event_stream<int> _unreadPollVotesCountChanges;
 	std::optional<HistoryItem*> _lastMessage;
 	std::optional<HistoryItem*> _lastServerMessage;
+	uint64 _ayuServerHistoryCheckGeneration = 0;
 	base::flat_set<not_null<HistoryItem*>> _clientSideMessages;
 	std::unordered_set<std::unique_ptr<HistoryItem>> _items;
 

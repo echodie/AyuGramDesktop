@@ -57,13 +57,19 @@ namespace {
 		not_null<PeerData*> peer) {
 	QStringList parts;
 	if (item->isService()) {
+		if (history->isAyuDeletedDialog()) {
+			parts << tr::lng_deleted_message(tr::now);
+		}
 		return parts;
 	}
 	const auto dateTime = ItemDateTime(item);
 
 	QString status;
 	auto statusBeforeMessage = false;
-	if (item->out()) {
+	if (history->isAyuDeletedDialog()) {
+		status = tr::lng_deleted_message(tr::now);
+		statusBeforeMessage = true;
+	} else if (item->out()) {
 		if (item->isSending()) {
 			status = tr::lng_sr_chat_sending(tr::now);
 			statusBeforeMessage = true;
@@ -445,10 +451,13 @@ QString SubItemValue(
 	}
 	case SubItem::Delivery: {
 		const auto chatItem = history->chatListMessage();
-		if (!chatItem || chatItem->isService()) {
+		if (!chatItem) {
 			return {};
-		}
-		if (chatItem->out()) {
+		} else if (history->isAyuDeletedDialog()) {
+			return tr::lng_deleted_message(tr::now);
+		} else if (chatItem->isService()) {
+			return {};
+		} else if (chatItem->out()) {
 			if (chatItem->isSending()) {
 				return tr::lng_sr_chat_sending(tr::now);
 			} else if (chatItem->hasFailed()) {

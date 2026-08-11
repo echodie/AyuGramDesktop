@@ -2894,6 +2894,7 @@ bool Session::updateExistingMessage(const MTPDmessage &data) {
 	if (!existing) {
 		return false;
 	}
+	existing->history()->invalidateAyuServerHistoryCheck();
 	existing->applySentMessage(data);
 	const auto result = (existing->mainView() != nullptr);
 	if (result) {
@@ -3188,11 +3189,13 @@ void Session::processMessagesDeleted(
 void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 	auto toDestroy = std::vector<not_null<HistoryItem*>>();
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
+	auto historiesToVerify = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
 		if (const auto item = nonChannelMessage(messageId.v)) {
 			const auto history = item->history();
 			if (isMessageSavable(item)) {
 				processMessageDelete(item);
+				historiesToVerify.emplace(history);
 			} else {
 				toDestroy.push_back(item);
 			}
@@ -3209,6 +3212,9 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 		if (!history->chatListMessageKnown()) {
 			history->requestChatListMessage();
 		}
+	}
+	for (const auto &history : historiesToVerify) {
+		histories().checkAyuServerHistory(history);
 	}
 }
 

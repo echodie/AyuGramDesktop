@@ -842,14 +842,22 @@ void PaintRow(
 				st::dialogsLockIcon,
 				context.active,
 				context.selected);
-		} else if (draft) {
-			if (draft->saveRequestId) {
-				return &ThreeStateIcon(
-					st::dialogsSendingIcon,
-					context.active,
-					context.selected);
-			}
-		} else if (item && !item->isEmpty() && item->needCheck()) {
+		} else if (draft && draft->saveRequestId) {
+			return &ThreeStateIcon(
+				st::dialogsSendingIcon,
+				context.active,
+				context.selected);
+		} else if (!context.search
+			&& history
+			&& history->isAyuDeletedDialog()) {
+			return &ThreeStateIcon(
+				st::ayuDialogsDeletedIcon,
+				context.active,
+				context.selected);
+		} else if (!draft
+			&& item
+			&& !item->isEmpty()
+			&& item->needCheck()) {
 			if (!item->isSending() && !item->hasFailed()) {
 				if (item->unread(thread)) {
 					return &ThreeStateIcon(

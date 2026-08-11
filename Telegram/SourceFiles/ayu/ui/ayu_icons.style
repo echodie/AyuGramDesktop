@@ -73,6 +73,11 @@ dialogsExteraSupporterIcon: ThreeStateIcon {
 	over: icon {{ "ayu/dialogs_extera_supporter", dialogsVerifiedIconBgOver }};
 	active: icon {{ "ayu/dialogs_extera_supporter", dialogsVerifiedIconBgActive }};
 }
+ayuDialogsDeletedIcon: ThreeStateIcon {
+	icon: icon {{ "ayu/trash_bin", dialogsSentIconFg }};
+	over: icon {{ "ayu/trash_bin", dialogsSentIconFgOver }};
+	active: icon {{ "ayu/trash_bin", dialogsSentIconFgActive }};
+}
 
 ayuHistoryFileInPlugin: icon {{ "ayu/history_file_plugin", historyFileInIconFg }};
 ayuHistoryFileInPluginSelected: icon {{ "ayu/history_file_plugin", historyFileInIconFgSelected }};

@@ -76,6 +76,7 @@ public:
 		not_null<Data::SavedSublist*> sublist,
 		bool unread);
 	void requestFakeChatListMessage(not_null<History*> history);
+	void checkAyuServerHistory(not_null<History*> history);
 
 	void requestGroupAround(not_null<HistoryItem*> item);
 
@@ -232,6 +233,7 @@ private:
 		std::vector<Fn<void()>>> _dialogRequestsPending;
 
 	base::flat_set<not_null<History*>> _fakeChatListRequests;
+	base::flat_map<not_null<History*>, int> _ayuServerHistoryRequests;
 
 	base::flat_map<
 		GroupRequestKey,

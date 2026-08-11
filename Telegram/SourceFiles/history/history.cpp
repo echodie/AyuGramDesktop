@@ -631,6 +631,9 @@ not_null<HistoryItem*> History::addNewMessage(
 		MessageFlags localFlags,
 		NewMessageType type) {
 	const auto newMessage = (type == NewMessageType::Unread);
+	if (newMessage) {
+		invalidateAyuServerHistoryCheck();
+	}
 	if (newMessage && isUnknownMessageDeleted(id)) {
 		const auto &updates = session().updates();
 		LOG(("Unknown deleted message re-added. "
@@ -3120,6 +3123,9 @@ void History::setChatListMessage(HistoryItem *item) {
 			return;
 		}
 		_chatListMessage = item;
+		if (IsServerMsgId(item->id) && !item->isDeleted()) {
+			invalidateAyuServerHistoryCheck();
+		}
 		setChatListTimeId(item->date());
 		resolveChatListMessageGroup();
 	} else if (!_chatListMessage || *_chatListMessage) {
@@ -3357,6 +3363,39 @@ HistoryItem *History::lastServerMessage() const {
 
 bool History::lastServerMessageKnown() const {
 	return _lastServerMessage.has_value();
+}
+
+bool History::isAyuDeletedDialog() const {
+	const auto item = chatListMessage();
+	return _ayuServerHistoryEmpty
+		&& item
+		&& IsServerMsgId(item->id)
+		&& item->isDeleted();
+}
+
+uint64 History::beginAyuServerHistoryCheck() {
+	return ++_ayuServerHistoryCheckGeneration;
+}
+
+void History::applyAyuServerHistoryCheck(uint64 generation, bool empty) {
+	if (generation != _ayuServerHistoryCheckGeneration
+		|| empty == _ayuServerHistoryEmpty) {
+		return;
+	}
+	_ayuServerHistoryEmpty = empty;
+	updateChatListEntry();
+}
+
+void History::invalidateAyuServerHistoryCheck() {
+	if (!_ayuServerHistoryCheckGeneration) {
+		return;
+	}
+	++_ayuServerHistoryCheckGeneration;
+	if (!_ayuServerHistoryEmpty) {
+		return;
+	}
+	_ayuServerHistoryEmpty = false;
+	updateChatListEntry();
 }
 
 void History::updateChatListExistence() {

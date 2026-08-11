@@ -2985,6 +2985,9 @@ void HistoryItem::setRealId(MsgId newId) {
 	Expects(isSending() || textAppearing());
 	Expects(IsClientMsgId(id));
 
+	if (!isScheduled() && !isBusinessShortcut()) {
+		_history->invalidateAyuServerHistoryCheck();
+	}
 	const auto oldId = std::exchange(id, newId);
 	_flags &= ~(MessageFlag::BeingSent | MessageFlag::Local);
 	if (textAppearing()) {

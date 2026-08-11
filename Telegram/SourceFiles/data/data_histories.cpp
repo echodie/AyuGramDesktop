@@ -45,6 +45,21 @@ namespace {
 constexpr auto kReadRequestTimeout = 3 * crl::time(1000);
 constexpr auto kReportDeliveriesPerRequest = 50;
 
+[[nodiscard]] bool IsAyuServerHistoryEmpty(
+		const MTPmessages_Messages &result) {
+	return result.match(
+		[](const MTPDmessages_messagesNotModified &data) {
+			return data.vcount().v == 0;
+		},
+		[](const MTPDmessages_messages &data) {
+			return data.vmessages().v.isEmpty();
+		},
+		[](const auto &data) {
+			return data.vcount().v == 0
+				&& data.vmessages().v.isEmpty();
+		});
+}
+
 } // namespace
 
 MTPInputReplyTo ReplyToForMTP(
@@ -176,6 +191,9 @@ void Histories::unloadAll() {
 }
 
 void Histories::clearAll() {
+	for (const auto &entry : base::take(_ayuServerHistoryRequests)) {
+		cancelRequest(entry.second);
+	}
 	_map.clear();
 }
 
@@ -582,6 +600,57 @@ void Histories::requestFakeChatListMessage(
 			finish();
 		}).send();
 	});
+}
+
+void Histories::checkAyuServerHistory(not_null<History*> history) {
+	const auto user = history->peer->asUser();
+	if (!user
+		|| user->isSelf()
+		|| user->isBot()
+		|| user->isServiceUser()
+		|| user->isRepliesChat()) {
+		return;
+	}
+	if (history->isAyuDeletedDialog()) {
+		return;
+	}
+	const auto item = history->chatListMessage();
+	if (item && IsServerMsgId(item->id) && !item->isDeleted()) {
+		return;
+	}
+
+	const auto generation = history->beginAyuServerHistoryCheck();
+	if (const auto requestId = _ayuServerHistoryRequests.take(history)) {
+		cancelRequest(*requestId);
+	}
+	const auto weak = base::make_weak(history.get());
+	const auto requestId = sendRequest(
+		history,
+		RequestType::History,
+		[=](Fn<void()> finish) {
+		return session().api().request(MTPmessages_GetHistory(
+			history->peer->input(),
+			MTP_int(0), // offset_id
+			MTP_int(0), // offset_date
+			MTP_int(0), // add_offset
+			MTP_int(1), // limit
+			MTP_int(0), // max_id
+			MTP_int(0), // min_id
+			MTP_long(0) // hash
+		)).done([=](const MTPmessages_Messages &result) {
+			_ayuServerHistoryRequests.remove(history);
+			if (const auto current = weak.get()) {
+				current->applyAyuServerHistoryCheck(
+					generation,
+					IsAyuServerHistoryEmpty(result));
+			}
+			finish();
+		}).fail([=] {
+			_ayuServerHistoryRequests.remove(history);
+			finish();
+		}).send();
+	});
+	_ayuServerHistoryRequests.emplace(history, requestId);
 }
 
 void Histories::requestGroupAround(not_null<HistoryItem*> item) {
