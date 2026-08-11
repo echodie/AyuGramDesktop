@@ -3428,7 +3428,9 @@ void Session::processMessagesDeleted(
 	}
 }
 
-void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
+void Session::processNonChannelMessagesDeleted(
+		const QVector<MTPint> &data,
+		int32 pts) {
 	auto toDestroy = std::vector<not_null<HistoryItem*>>();
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
@@ -3452,6 +3454,7 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 		if (!history->chatListMessageKnown()) {
 			history->requestChatListMessage();
 		}
+		histories().checkAyuDeletedDialog(history, pts);
 	}
 }
 

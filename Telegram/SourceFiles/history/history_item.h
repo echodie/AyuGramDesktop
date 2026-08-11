@@ -470,6 +470,10 @@ public:
 	void setPostAuthor(const QString &author);
 	void setDeleted();
 	[[nodiscard]] bool isDeleted() const;
+	[[nodiscard]] bool isAyuDeletedDialog() const {
+		return _ayuDeletedDialog;
+	}
+	void setAyuDeletedDialog(bool value);
 	[[nodiscard]] bool isBurnt() const;
 	[[nodiscard]] bool wasDeletedAnimated() const;
 	void markDeletedAnimated();
@@ -829,6 +833,7 @@ private:
 
 	bool _deleted = false;
 	bool _deletedAnimated = false;
+	bool _ayuDeletedDialog = false;
 
 	TimeId _date = 0;
 	TimeId _ttlDestroyAt = 0;

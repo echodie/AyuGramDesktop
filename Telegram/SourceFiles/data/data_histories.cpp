@@ -47,6 +47,14 @@ namespace {
 constexpr auto kReadRequestTimeout = 3 * crl::time(1000);
 constexpr auto kReportDeliveriesPerRequest = 50;
 
+[[nodiscard]] HistoryItem *AyuDeletedDialogCandidate(
+		not_null<History*> history) {
+	const auto item = history->chatListMessage();
+	return (item && IsServerMsgId(item->id))
+		? item
+		: history->lastServerMessage();
+}
+
 } // namespace
 
 MTPInputReplyTo ReplyToForMTP(
@@ -178,6 +186,7 @@ void Histories::unloadAll() {
 }
 
 void Histories::clearAll() {
+	_ayuDeletedDialogRequiredPts.clear();
 	_map.clear();
 }
 
@@ -584,6 +593,67 @@ void Histories::requestFakeChatListMessage(
 			finish();
 		}).send();
 	});
+}
+
+void Histories::checkAyuDeletedDialog(
+		not_null<History*> history,
+		int32 pts) {
+	const auto user = history->peer->asUser();
+	const auto item = AyuDeletedDialogCandidate(history);
+	if (!user
+		|| user->isSelf()
+		|| user->isBot()
+		|| user->isServiceUser()
+		|| user->isRepliesChat()
+		|| !item
+		|| !item->isDeleted()
+		|| item->isAyuDeletedDialog()) {
+		return;
+	}
+	const auto [i, added] = _ayuDeletedDialogRequiredPts.try_emplace(history);
+	i->second = std::max(i->second, pts);
+	if (added) {
+		requestAyuDeletedDialog(history);
+	}
+}
+
+void Histories::requestAyuDeletedDialog(not_null<History*> history) {
+	const auto weak = base::make_weak(history.get());
+	session().api().request(MTPmessages_GetPeerDialogs(
+		MTP_vector<MTPInputDialogPeer>(
+			1,
+			MTP_inputDialogPeer(history->peer->input()))
+	)).done(crl::guard(weak, [=](const MTPmessages_PeerDialogs &result) {
+		applyAyuDeletedDialogResult(history, result);
+	})).fail(crl::guard(weak, [=] {
+		_ayuDeletedDialogRequiredPts.remove(history);
+	})).send();
+}
+
+void Histories::applyAyuDeletedDialogResult(
+		not_null<History*> history,
+		const MTPmessages_PeerDialogs &result) {
+	const auto requiredPts = _ayuDeletedDialogRequiredPts.take(history);
+	if (!requiredPts) {
+		return;
+	}
+	const auto &data = result.c_messages_peerDialogs();
+	const auto responsePts = data.vstate().c_updates_state().vpts().v;
+	const auto item = AyuDeletedDialogCandidate(history);
+	if (!item || !item->isDeleted()) {
+		return;
+	} else if (responsePts < *requiredPts) {
+		_ayuDeletedDialogRequiredPts.emplace(history, *requiredPts);
+		requestAyuDeletedDialog(history);
+		return;
+	}
+	_owner->processUsers(data.vusers());
+	_owner->processChats(data.vchats());
+	_owner->processMessages(data.vmessages(), NewMessageType::Existing);
+	const auto topMessageId = data.vdialogs().v.empty()
+		? 0
+		: data.vdialogs().v.front().c_dialog().vtop_message().v;
+	item->setAyuDeletedDialog(!topMessageId);
 }
 
 void Histories::requestGroupAround(not_null<HistoryItem*> item) {

@@ -4165,6 +4165,14 @@ bool HistoryItem::isDeleted() const {
 	return _deleted;
 }
 
+void HistoryItem::setAyuDeletedDialog(bool value) {
+	if (_ayuDeletedDialog == value) {
+		return;
+	}
+	_ayuDeletedDialog = value;
+	_history->updateChatListEntry();
+}
+
 bool HistoryItem::isBurnt() const {
 	return media() && media()->ttlSeconds() && !hasUnreadMediaFlag();
 }
