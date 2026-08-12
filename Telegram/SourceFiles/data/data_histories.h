@@ -76,7 +76,7 @@ public:
 		not_null<Data::SavedSublist*> sublist,
 		bool unread);
 	void requestFakeChatListMessage(not_null<History*> history);
-	void checkAyuServerHistory(not_null<History*> history);
+	void checkAyuDeletedDialog(not_null<History*> history, int32 pts);
 
 	void requestGroupAround(not_null<HistoryItem*> item);
 
@@ -208,6 +208,10 @@ private:
 	void postponeRequestDialogEntries();
 
 	void sendDialogRequests();
+	void requestAyuDeletedDialog(not_null<History*> history);
+	void applyAyuDeletedDialogResult(
+		not_null<History*> history,
+		const MTPmessages_PeerDialogs &result);
 	void reportPendingDeliveries();
 
 	[[nodiscard]] bool isCreatingTopic(
@@ -233,7 +237,7 @@ private:
 		std::vector<Fn<void()>>> _dialogRequestsPending;
 
 	base::flat_set<not_null<History*>> _fakeChatListRequests;
-	base::flat_map<not_null<History*>, int> _ayuServerHistoryRequests;
+	base::flat_map<not_null<History*>, int32> _ayuDeletedDialogRequiredPts;
 
 	base::flat_map<
 		GroupRequestKey,

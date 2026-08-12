@@ -848,8 +848,8 @@ void PaintRow(
 				context.active,
 				context.selected);
 		} else if (!context.search
-			&& history
-			&& history->isAyuDeletedDialog()) {
+			&& item
+			&& item->isAyuDeletedDialog()) {
 			return &ThreeStateIcon(
 				st::ayuDialogsDeletedIcon,
 				context.active,

@@ -589,7 +589,9 @@ public:
 	void processExistingMessages(
 		ChannelData *channel,
 		const MTPmessages_Messages &data);
-	void processNonChannelMessagesDeleted(const QVector<MTPint> &data);
+	void processNonChannelMessagesDeleted(
+		const QVector<MTPint> &data,
+		int32 pts);
 	void processMessagesDeleted(
 		PeerId peerId,
 		const QVector<MTPint> &data);

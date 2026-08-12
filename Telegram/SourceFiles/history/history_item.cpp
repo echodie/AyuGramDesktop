@@ -2985,9 +2985,6 @@ void HistoryItem::setRealId(MsgId newId) {
 	Expects(isSending() || textAppearing());
 	Expects(IsClientMsgId(id));
 
-	if (!isScheduled() && !isBusinessShortcut()) {
-		_history->invalidateAyuServerHistoryCheck();
-	}
 	const auto oldId = std::exchange(id, newId);
 	_flags &= ~(MessageFlag::BeingSent | MessageFlag::Local);
 	if (textAppearing()) {
@@ -3957,6 +3954,14 @@ void HistoryItem::setDeleted() {
 
 bool HistoryItem::isDeleted() const {
 	return _deleted;
+}
+
+void HistoryItem::setAyuDeletedDialog(bool value) {
+	if (_ayuDeletedDialog == value) {
+		return;
+	}
+	_ayuDeletedDialog = value;
+	_history->updateChatListEntry();
 }
 
 bool HistoryItem::isBurnt() const {

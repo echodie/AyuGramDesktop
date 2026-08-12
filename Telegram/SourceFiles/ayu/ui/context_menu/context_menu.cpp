@@ -113,7 +113,9 @@ void DeleteMyMessagesAfterConfirm(not_null<PeerData*> peer) {
 			if (peer->isChannel()) {
 				session->data().processMessagesDeleted(peer->id, ids);
 			} else {
-				session->data().processNonChannelMessagesDeleted(ids);
+				session->data().processNonChannelMessagesDeleted(
+					ids,
+					result.c_messages_affectedMessages().vpts().v);
 			}
 			const auto deleted = index + ids.size();
 			DEBUG_LOG(("Deleted batch %1, total deleted %2/%3").arg(batch).arg(deleted).arg(collected->size()));

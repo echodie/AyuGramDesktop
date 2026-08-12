@@ -54,10 +54,13 @@ namespace {
 [[nodiscard]] QStringList MessageTailParts(
 		not_null<const HistoryItem*> item,
 		not_null<History*> history,
-		not_null<PeerData*> peer) {
+		not_null<PeerData*> peer,
+		bool dialogRow) {
 	QStringList parts;
+	const auto deletedDialog = dialogRow
+		&& item->isAyuDeletedDialog();
 	if (item->isService()) {
-		if (history->isAyuDeletedDialog()) {
+		if (deletedDialog) {
 			parts << tr::lng_deleted_message(tr::now);
 		}
 		return parts;
@@ -66,7 +69,7 @@ namespace {
 
 	QString status;
 	auto statusBeforeMessage = false;
-	if (history->isAyuDeletedDialog()) {
+	if (deletedDialog) {
 		status = tr::lng_deleted_message(tr::now);
 		statusBeforeMessage = true;
 	} else if (item->out()) {
@@ -260,7 +263,7 @@ QString RowAccessibilityName(
 	}
 
 	if (const auto item = history->chatListMessage()) {
-		parts += MessageTailParts(item, history, peer);
+		parts += MessageTailParts(item, history, peer, true);
 	}
 
 	return parts.join(u", "_q);
@@ -453,7 +456,7 @@ QString SubItemValue(
 		const auto chatItem = history->chatListMessage();
 		if (!chatItem) {
 			return {};
-		} else if (history->isAyuDeletedDialog()) {
+		} else if (chatItem->isAyuDeletedDialog()) {
 			return tr::lng_deleted_message(tr::now);
 		} else if (chatItem->isService()) {
 			return {};
@@ -668,7 +671,7 @@ QString SearchedMessageAccessibilityName(
 			? Data::ForumGeneralIconTitle()
 			: topic->title());
 	}
-	parts += MessageTailParts(item, history, peer);
+	parts += MessageTailParts(item, history, peer, false);
 	return parts.join(u", "_q);
 }
 
