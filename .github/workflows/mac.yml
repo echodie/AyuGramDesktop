@@ -6,13 +6,15 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
   mac:
-    runs-on: macos-latest
+    runs-on: macos-26
     env:
       ONLY_CACHE: "false"
-      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
-      LIBRARIES_CACHE_VERSION: "v2"
+      LIBRARIES_CACHE_VERSION: "v3"
 
     steps:
       - name: clone
@@ -22,14 +24,15 @@ jobs:
           path: AyuGramDesktop
 
       - name: setup
+        id: setup
         run: |
-          sudo chown -R `whoami`:admin /usr/local/share
-          brew update
-          brew upgrade || true
-          brew install automake libtool meson nasm ninja pkg-config
+          brew install automake cmake libtool meson nasm ninja pkg-config wget
           sudo mdutil -a -i off
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
           sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' /opt/homebrew/share/cmake/Modules/Compiler/GNU.cmake
+          xcodebuild -version
+          toolchain=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)
+          echo "cache-prefix=${RUNNER_OS}-${RUNNER_ARCH}-macos26-libs-${LIBRARIES_CACHE_VERSION}-${toolchain}" >> "$GITHUB_OUTPUT"
 
       - name: libraries cache
         id: libs
@@ -38,8 +41,8 @@ jobs:
           path: |
             Libraries
             ThirdParty
-          key: ${{ runner.os }}-libs-${{ env.LIBRARIES_CACHE_VERSION }}-${{ hashFiles(format('AyuGramDesktop/{0}', env.PREPARE_PATH)) }}
-          restore-keys: ${{ runner.os }}-libs-${{ env.LIBRARIES_CACHE_VERSION }}-
+          key: ${{ steps.setup.outputs.cache-prefix }}-${{ hashFiles('AyuGramDesktop/Telegram/build/prepare/**', 'AyuGramDesktop/Telegram/build/qt_version.py') }}
+          restore-keys: ${{ steps.setup.outputs.cache-prefix }}-
 
       - name: libraries
         run: |
@@ -51,7 +54,10 @@ jobs:
         run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/pkgconfig/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 ')' -type f ')' -o -empty ')' -delete
 
       - name: verify libraries
-        run: PKG_CONFIG_PATH="$PWD/Libraries/local/lib/pkgconfig" pkg-config --print-errors --exists openh264
+        run: |
+          PKG_CONFIG_PATH="$PWD/Libraries/local/lib/pkgconfig" pkg-config --print-errors --exists openh264
+          test -s Libraries/local/lib/libtlottie.a
+          test -s Libraries/local/include/tlottie/tlottie.h
 
       - name: save libraries cache
         if: success() && steps.libs.outputs.cache-hit != 'true'
@@ -60,7 +66,7 @@ jobs:
           path: |
             Libraries
             ThirdParty
-          key: ${{ runner.os }}-libs-${{ env.LIBRARIES_CACHE_VERSION }}-${{ hashFiles(format('AyuGramDesktop/{0}', env.PREPARE_PATH)) }}
+          key: ${{ steps.libs.outputs.cache-primary-key }}
 
       - name: build
         if: env.ONLY_CACHE == 'false'
@@ -85,12 +91,14 @@ jobs:
           cd AyuGramDesktop/out/Release
           strip AyuGram.app/Contents/MacOS/AyuGram
           codesign --force --sign - --deep AyuGram.app
-          mkdir artifact
-          mv AyuGram.app artifact/
+          codesign --verify --deep --strict AyuGram.app
+          ditto -c -k --sequesterRsrc --keepParent AyuGram.app ayugram-mac-arm64.zip
 
       - name: upload
         if: env.ONLY_CACHE == 'false'
         uses: actions/upload-artifact@v7
         with:
           name: ayugram-mac
-          path: AyuGramDesktop/out/Release/artifact/
+          path: AyuGramDesktop/out/Release/ayugram-mac-arm64.zip
+          if-no-files-found: error
+          compression-level: 0
