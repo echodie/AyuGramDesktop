@@ -315,8 +315,14 @@ QString objc_documentsPath() {
 
 QString objc_appDataPath() {
 	NSURL *url = [[NSFileManager defaultManager] URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:nil];
-	if (url) {
-		return QString::fromUtf8([[url path] fileSystemRepresentation]) + '/' + AppName.utf16() + '/';
+#ifdef OS_MAC_STORE
+	const auto name = AppName.utf16();
+#else
+	const auto name = NS2QString([[NSBundle mainBundle] bundleIdentifier]);
+#endif
+	if (url && !name.isEmpty()) {
+		return QString::fromUtf8([[url path] fileSystemRepresentation])
+			+ '/' + name + '/';
 	}
 	return QString();
 }
