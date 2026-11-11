@@ -870,9 +870,19 @@ void ProcessFilterInvite(
 void SaveNewFilterPinned(
 		not_null<Main::Session*> session,
 		FilterId filterId) {
-	const auto &order = session->data().pinnedChatsOrder(filterId);
 	auto &filters = session->data().chatsFilters();
-	const auto &filter = filters.applyUpdatedPinned(filterId, order);
+	const auto pinned = filters.chatsList(filterId)->pinned();
+	const auto &order = pinned->order();
+	const auto server = std::vector<Dialogs::Key>(
+		order.begin(),
+		order.begin() + pinned->serverCount());
+	const auto &filter = filters.applyUpdatedPinned(filterId, server);
+	for (const auto &key : server | ranges::views::reverse) {
+		if (!ranges::contains(filter.pinned(), not_null(key.history()))) {
+			pinned->setPinnedLocally(key);
+			session->data().notifyPinnedDialogsOrderUpdated();
+		}
+	}
 	session->api().request(MTPmessages_UpdateDialogFilter(
 		MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
 		MTP_int(filterId),

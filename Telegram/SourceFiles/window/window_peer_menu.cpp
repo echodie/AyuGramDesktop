@@ -144,6 +144,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_ayu_icons.h"
 #include "ayu/ui/context_menu/context_menu.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/local_pins.h"
 
 
 namespace Window {
@@ -4597,7 +4598,15 @@ void TogglePinnedThread(
 		not_null<Dialogs::Entry*> entry,
 		FilterId filterId,
 		Fn<void()> onToggled) {
-	if (!filterId) {
+	if (Ayu::LocalPins::Toggle(entry, filterId)) {
+		if (entry->isPinnedDialog(filterId)) {
+			controller->content()->dialogsToUp();
+		}
+		if (onToggled) {
+			onToggled();
+		}
+		return;
+	} else if (!filterId) {
 		return TogglePinnedThread(controller, entry, onToggled);
 	}
 	const auto history = entry->asHistory();

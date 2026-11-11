@@ -41,14 +41,35 @@ void PinnedList::addPinned(Key key) {
 
 int PinnedList::addPinnedGetPosition(Key key) {
 	const auto already = ranges::find(_data, key);
-	if (already != end(_data)) {
+	if (already - begin(_data) < _server) {
 		return already - begin(_data);
+	} else if (already != end(_data)) {
+		_data.erase(already);
+	} else {
+		applyLimit(_limit - 1);
 	}
-	applyLimit(_limit - 1);
-	const auto position = int(_data.size());
-	_data.push_back(key);
-	key.entry()->cachePinnedIndex(_filterId, position + 1);
-	return position;
+	insertAfterServer(key);
+	return _server++;
+}
+
+void PinnedList::setPinnedLocally(Key key) {
+	Expects(key.entry()->folderKnown() || _filterId != 0);
+
+	if (!ranges::contains(_data, key) && int(_data.size()) < _limit) {
+		insertAfterServer(key);
+	}
+}
+
+bool PinnedList::isLocal(Key key) const {
+	const auto i = ranges::find(_data, key);
+	return (i != end(_data)) && (i - begin(_data) >= _server);
+}
+
+void PinnedList::insertAfterServer(Key key) {
+	_data.insert(begin(_data) + _server, key);
+	for (auto i = _server; i < int(size(_data)); ++i) {
+		_data[i].entry()->cachePinnedIndex(_filterId, i + 1);
+	}
 }
 
 void PinnedList::setPinned(Key key, bool pinned) {
@@ -65,6 +86,9 @@ void PinnedList::setPinned(Key key, bool pinned) {
 		}
 	} else if (const auto it = ranges::find(_data, key); it != end(_data)) {
 		const auto index = int(it - begin(_data));
+		if (index < _server) {
+			--_server;
+		}
 		_data.erase(it);
 		key.entry()->cachePinnedIndex(_filterId, 0);
 		// cachePinnedIndex() may re-enter and erase from _data (for example
@@ -88,12 +112,18 @@ void PinnedList::clear() {
 	applyLimit(0);
 }
 
+void PinnedList::clearServer() {
+	while (_server) {
+		setPinned(_data[_server - 1], false);
+	}
+}
+
 void PinnedList::applyList(
 		not_null<Data::Session*> owner,
 		const QVector<MTPDialogPeer> &list) {
 	Expects(this != owner->savedMessages().chatsList()->pinned());
 
-	clear();
+	clearServer();
 	for (const auto &peer : list) {
 		peer.match([&](const MTPDdialogPeer &data) {
 			if (const auto peerId = peerFromMTP(data.vpeer())) {
@@ -147,18 +177,20 @@ void PinnedList::applyList(const std::vector<not_null<History*>> &list) {
 	Expects(_filterId != 0);
 
 	const auto old = base::take(_data);
+	const auto oldServer = std::exchange(_server, int(list.size()));
 
-	const auto count = int(list.size());
-	_data.reserve(count);
-	for (auto i = 0; i != count; ++i) {
-		const auto history = list[i];
-		_data.emplace_back(history);
-		history->cachePinnedIndex(_filterId, i + 1);
+	_data.assign(list.begin(), list.end());
+	for (const auto &key : old | ranges::views::drop(oldServer)) {
+		if (!ranges::contains(_data, key)) {
+			_data.push_back(key);
+		}
+	}
+	for (auto i = 0; i != int(_data.size()); ++i) {
+		_data[i].entry()->cachePinnedIndex(_filterId, i + 1);
 	}
 
 	for (const auto &key : old) {
-		const auto history = key.history();
-		if (!history || !ranges::contains(_data, history, &Key::history)) {
+		if (!ranges::contains(_data, key)) {
 			key.entry()->cachePinnedIndex(_filterId, 0);
 		}
 	}

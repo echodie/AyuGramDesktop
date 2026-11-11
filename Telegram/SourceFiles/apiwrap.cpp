@@ -413,7 +413,9 @@ void ApiWrap::checkFilterInvite(
 }
 
 void ApiWrap::savePinnedOrder(Data::Folder *folder) {
-	const auto &order = _session->data().pinnedChatsOrder(folder);
+	const auto pinned = _session->data().chatsList(folder)->pinned();
+	const auto order = pinned->order()
+		| ranges::views::take(pinned->serverCount());
 	const auto input = [](Dialogs::Key key) {
 		if (const auto history = key.history()) {
 			if (const auto channel = history->peer->asChannel()

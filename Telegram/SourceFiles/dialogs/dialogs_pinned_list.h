@@ -25,14 +25,25 @@ public:
 
 	void setLimit(int limit);
 
-	// Places on the last place in the list otherwise.
+	// Places after the last server pinned entry otherwise.
 	// Does nothing if already pinned.
 	void addPinned(Key key);
 
 	// if (pinned) places on the first place in the list.
 	void setPinned(Key key, bool pinned);
 
+	// Entries after serverCount() are pinned only on this device.
+	void setPinnedLocally(Key key);
+	[[nodiscard]] bool isLocal(Key key) const;
+	[[nodiscard]] int serverCount() const {
+		return _server;
+	}
+	[[nodiscard]] int limit() const {
+		return _limit;
+	}
+
 	void clear();
+	void clearServer();
 
 	void applyList(
 		not_null<Data::Session*> owner,
@@ -52,10 +63,12 @@ public:
 
 private:
 	int addPinnedGetPosition(Key key);
+	void insertAfterServer(Key key);
 	void applyLimit(int limit);
 
 	FilterId _filterId = 0;
 	int _limit = 0;
+	int _server = 0;
 	std::vector<Key> _data;
 
 };

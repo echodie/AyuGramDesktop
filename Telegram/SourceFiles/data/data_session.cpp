@@ -105,6 +105,7 @@ namespace {
 
 constexpr auto kNextForUpgradeGiftTimeout = 5 * crl::time(1000);
 constexpr auto kMaxServiceNotificationMessageSize = 4096;
+constexpr auto kLocalPinsLimit = 500;
 
 using ViewElement = HistoryView::Element;
 
@@ -2799,7 +2800,7 @@ void Session::setPinnedFromEntryList(Dialogs::Key key, bool pinned) {
 	const auto list = chatsListFor(key.entry())->pinned();
 	if (pinned) {
 		list->addPinned(key);
-	} else {
+	} else if (!list->isLocal(key)) {
 		list->setPinned(key, false);
 	}
 }
@@ -2926,7 +2927,8 @@ bool Session::pinnedCanPin(not_null<Dialogs::Entry*> entry) const {
 		return pinnedChatsOrder(forum).size() < pinnedChatsLimit(forum);
 	} else {
 		const auto folder = entry->folder();
-		return pinnedChatsOrder(folder).size() < pinnedChatsLimit(folder);
+		return chatsList(folder)->pinned()->serverCount()
+			< pinnedChatsLimit(folder);
 	}
 }
 
@@ -2976,7 +2978,7 @@ rpl::producer<int> Session::maxPinnedChatsLimitValue(
 	return _session->appConfig().value(
 	) | rpl::map([folder, limits = Data::PremiumLimits(_session)] {
 		return folder
-			? limits.dialogsFolderPinnedPremium()
+			? std::max(limits.dialogsFolderPinnedPremium(), kLocalPinsLimit)
 			: limits.dialogsPinnedPremium();
 	});
 }
@@ -2989,7 +2991,7 @@ rpl::producer<int> Session::maxPinnedChatsLimitValue(
 	// premium-ly added chats from the pinned list because of sync issues.
 	return _session->appConfig().value(
 	) | rpl::map([limits = Data::PremiumLimits(_session)] {
-		return limits.dialogFiltersChatsPremium();
+		return std::max(limits.dialogFiltersChatsPremium(), kLocalPinsLimit);
 	});
 }
 
@@ -3044,7 +3046,7 @@ void Session::clearPinnedChats(Data::Folder *folder) {
 	if (!folder) {
 		_pinnedCommunitiesNotLoaded.clear();
 	}
-	chatsList(folder)->pinned()->clear();
+	chatsList(folder)->pinned()->clearServer();
 }
 
 void Session::reorderTwoPinnedChats(
