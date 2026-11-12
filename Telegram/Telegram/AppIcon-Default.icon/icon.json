@@ -1,12 +1,14 @@
 {
   "fill-specializations" : [
     {
-      "value" : "system-light"
+      "value" : {
+        "solid" : "display-p3:0.54510,0.36080,0.96470,1.00000"
+      }
     },
     {
       "appearance" : "dark",
       "value" : {
-        "solid" : "extended-gray:0.75000,1.00000"
+        "solid" : "display-p3:0.54510,0.36080,0.96470,1.00000"
       }
     }
   ],
@@ -17,11 +19,12 @@
           "blend-mode" : "normal",
           "fill" : "automatic",
           "glass" : false,
+          "hidden" : false,
           "image-name" : "app.svg",
           "name" : "app",
           "opacity" : 1,
           "position" : {
-            "scale" : 0.75,
+            "scale" : 0.95,
             "translation-in-points" : [
               0,
               0
@@ -30,7 +33,7 @@
         }
       ],
       "shadow" : {
-        "kind" : "neutral",
+        "kind" : "none",
         "opacity" : 0.5
       },
       "translucency" : {
